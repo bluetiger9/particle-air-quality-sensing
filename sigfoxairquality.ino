@@ -121,14 +121,19 @@ bool sigfoxDisable() {
   delay(100);
 }
 
+uint16_t fixEndianness(uint16_t val) {
+    return val; // not needed if we specify :little-endian in SigFox backend
+    //return ((val & 0x00FF) << 8) + ((val & 0xFF00) >> 8);
+}
+
 void sigfoxLoop() {
   if (millis() >= sigfoxNextSend) {
-    msg.pm_1_0 = pms7003.GetData(pms7003.pm1_0);
-    msg.pm_2_5 = pms7003.GetData(pms7003.pm2_5);
-    msg.pm_10_0 = pms7003.GetData(pms7003.pm10);
-    msg.cnt_0_3 = pms7003.GetData(pms7003.count0_3um);
-    msg.cnt_0_5 = pms7003.GetData(pms7003.count0_5um);
-    msg.cnt_1_0 = pms7003.GetData(pms7003.count1um);
+    msg.pm_1_0 = fixEndianness(pms7003.GetData(pms7003.pm1_0));
+    msg.pm_2_5 = fixEndianness(pms7003.GetData(pms7003.pm2_5));
+    msg.pm_10_0 = fixEndianness(pms7003.GetData(pms7003.pm10));
+    msg.cnt_0_3 = fixEndianness(pms7003.GetData(pms7003.count0_3um));
+    msg.cnt_0_5 = fixEndianness(pms7003.GetData(pms7003.count0_5um));
+    msg.cnt_1_0 = fixEndianness(pms7003.GetData(pms7003.count1um));
     
     pmsDisable();
     sigfoxEnable();
@@ -208,10 +213,13 @@ void sendMessage(uint8_t msg[], int size){
 
   Sigfox.print("AT$SF=");
   for(int i= 0;i<size;i++){
-    Sigfox.print(String(msg[i], HEX));
+    Sigfox.print(String((msg[i] >> 4) & 0x0F, HEX) + String(msg[i] & 0x0F, HEX));
     if(DEBUG){
       Serial.print("Byte:");
-      Serial.println(msg[i], HEX);
+      Serial.print(msg[i], HEX);
+      Serial.print(" ");
+      Serial.print(String((msg[i] >> 4) & 0x0F, HEX));
+      Serial.println(String(msg[i] & 0x0F, HEX));
     }
   }
 
